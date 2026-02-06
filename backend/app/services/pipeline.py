@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import SessionLocal
-from app.services.calendar_poller import fetch_upcoming_events, parse_event
+
+from app.models import Meeting, MeetingStatus
+from app.services.calendar_poller import poll_and_upsert
 from app.services.enrichment import enrich_meeting
 from app.services.synthesis import synthesize_meeting_prep
 from app.steering import get_current_steering
@@ -20,7 +22,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-async def run_pipeline_for_new_meetings(db: AsyncSession | None = None) -> int:
+async def run_pipeline_for_new_meetings(
+    db: AsyncSession | None = None, *, poll: bool = True
+) -> int:
     """Orchestrate the end-to-end agent workflow for any NEW meetings.
 
     In the full implementation (per `Backend.md`), this will:
@@ -34,9 +38,9 @@ async def run_pipeline_for_new_meetings(db: AsyncSession | None = None) -> int:
     """
     if db is None:
         async with SessionLocal() as session:
-            return await _run_pipeline_for_new_meetings(session)
+            return await _run_pipeline_for_new_meetings(session, poll=poll)
 
-    return await _run_pipeline_for_new_meetings(db)
+    return await _run_pipeline_for_new_meetings(db, poll=poll)
 
 
 # ---------------------------------------------------------------------------
@@ -44,49 +48,40 @@ async def run_pipeline_for_new_meetings(db: AsyncSession | None = None) -> int:
 # ---------------------------------------------------------------------------
 
 
-async def _run_pipeline_for_new_meetings(db: AsyncSession) -> int:
+async def _run_pipeline_for_new_meetings(db: AsyncSession, *, poll: bool) -> int:
     logger.info("run_pipeline_for_new_meetings: starting (stub)")
 
-    # Poll Google Calendar
-    #  no persistence yet - this means repeated runs will re-process the same events.
-    events = await fetch_upcoming_events(days_ahead=7, calendar_id="primary", max_results=25)
-    logger.info("polled %s calendar events", len(events))
+    if poll:
+        await poll_and_upsert(db, days_ahead=7, calendar_id="primary")
 
-    meetings: list[dict] = []
-    for raw in events:
-        parsed = parse_event(raw)
-        company = _infer_company_from_attendees(parsed.get("attendees") or [])
-        meetings.append(
-            {
-                "calendar_event_id": parsed.get("calendar_event_id"),
-                "title": parsed.get("title") or "",
-                "start_time": parsed.get("start_time"),
-                "company": company,
-                "role": "Unknown",
-                "attendees": parsed.get("attendees") or [],
-            }
-        )
+    result = await db.execute(
+        select(Meeting).where(Meeting.status == MeetingStatus.New)
+    )
+    meetings = list(result.scalars().all())
 
     steering = await get_current_steering(db)
 
     processed_meetings = 0
     for m in meetings:
-        logger.info("processing meeting (stub): %s", m.get("title") or m.get("id") or "unknown")
+        logger.info(
+            "processing meeting (stub): %s",
+            m.title or m.calendar_event_id or m.id or "unknown",
+        )
 
         # TODO: set status=Enriching in DB
         enrichment = await enrich_meeting(
-            company=m["company"],
-            role=m["role"],
-            attendees=m.get("attendees", []),
+            company=m.company or "Unknown",
+            role=m.role or "Unknown",
+            attendees=m.attendees or [],
             steering=steering,
         )
 
         synthesis = await synthesize_meeting_prep(
             enrichment=enrichment,
-            meeting_title=m.get("title", ""),
-            company=m["company"],
-            role=m["role"],
-            attendees=m.get("attendees", []),
+            meeting_title=m.title or "",
+            company=m.company or "Unknown",
+            role=m.role or "Unknown",
+            attendees=m.attendees or [],
             steering=steering,
         )
 
@@ -107,20 +102,6 @@ async def _run_pipeline_for_new_meetings(db: AsyncSession) -> int:
 
     logger.info("run_pipeline_for_new_meetings: done (processed=%s)", processed_meetings)
     return processed_meetings
-
-
-def _infer_company_from_attendees(attendees: list[dict]) -> str:
-    """Best-effort company inference from attendee email domain."""
-    for a in attendees:
-        if not isinstance(a, dict):
-            continue
-        email = a.get("email")
-        if not email or "@" not in str(email):
-            continue
-        domain = str(email).split("@", 1)[1].lower().strip()
-        if domain:
-            return domain
-    return "Unknown"
 
 
 def _main() -> None:
