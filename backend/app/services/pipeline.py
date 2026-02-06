@@ -11,6 +11,8 @@ from app.database import SessionLocal
 from app.models import Meeting, MeetingStatus
 from app.services.calendar_poller import poll_and_upsert
 from app.services.enrichment import enrich_meeting
+from app.services.gmail_drafter import create_drafts
+from app.services.notion_sync import upsert_notion_row
 from app.services.synthesis import synthesize_meeting_prep
 from app.steering import get_current_steering
 
@@ -103,11 +105,35 @@ async def _run_pipeline_for_new_meetings(db: AsyncSession, *, poll: bool) -> int
         m.insights = [i.model_dump() for i in synthesis.insights]
         m.hooks = [h.model_dump() for h in synthesis.hooks]
         m.competitors = [c.model_dump() for c in synthesis.competitors]
-        m.draft_ids = []
         m.status = MeetingStatus.Enriched
         await db.commit()
 
-        # TODO: notion upsert -> gmail drafts
+        notion_page_id = await upsert_notion_row(
+            meeting_data={
+                "title": m.title,
+                "company": m.company,
+                "role": m.role,
+                "status": m.status.value,
+            },
+            existing_page_id=m.notion_page_id,
+        )
+        if notion_page_id:
+            m.notion_page_id = notion_page_id
+
+        recipient = ""
+        if m.attendees:
+            email = m.attendees[0].get("email")
+            if email:
+                recipient = str(email)
+        draft_ids = []
+        if recipient:
+            draft_ids = await create_drafts(
+                recipient_email=recipient,
+                pre_meeting=synthesis.pre_meeting_draft.model_dump(),
+                follow_up=synthesis.follow_up_draft.model_dump(),
+            )
+        m.draft_ids = draft_ids
+
         m.status = MeetingStatus.Drafted
         await db.commit()
 
