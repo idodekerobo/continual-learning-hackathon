@@ -68,7 +68,10 @@ async def _run_pipeline_for_new_meetings(db: AsyncSession, *, poll: bool) -> int
             m.title or m.calendar_event_id or m.id or "unknown",
         )
 
-        # TODO: set status=Enriching in DB
+        m.status = MeetingStatus.Enriching
+        m.steering_version = steering.version
+        await db.commit()
+
         enrichment = await enrich_meeting(
             company=m.company or "Unknown",
             role=m.role or "Unknown",
@@ -87,7 +90,9 @@ async def _run_pipeline_for_new_meetings(db: AsyncSession, *, poll: bool) -> int
 
         if synthesis.error:
             logger.warning("synthesis returned error: %s", synthesis.error)
-            # TODO: set status=Error + error_message in DB
+            m.status = MeetingStatus.Error
+            m.error_message = synthesis.error
+            await db.commit()
             continue
 
         logger.info(
@@ -95,8 +100,16 @@ async def _run_pipeline_for_new_meetings(db: AsyncSession, *, poll: bool) -> int
             len(synthesis.insights),
             len(synthesis.hooks),
         )
-        # TODO: persist synthesis outputs to DB
-        # TODO: notion upsert -> gmail drafts -> set status=Drafted
+        m.insights = [i.model_dump() for i in synthesis.insights]
+        m.hooks = [h.model_dump() for h in synthesis.hooks]
+        m.competitors = [c.model_dump() for c in synthesis.competitors]
+        m.draft_ids = []
+        m.status = MeetingStatus.Enriched
+        await db.commit()
+
+        # TODO: notion upsert -> gmail drafts
+        m.status = MeetingStatus.Drafted
+        await db.commit()
 
         processed_meetings += 1
 
