@@ -4,10 +4,13 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from app.schemas import SteeringProfileRead
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import SessionLocal
 from app.services.calendar_poller import fetch_upcoming_events, parse_event
 from app.services.enrichment import enrich_meeting
 from app.services.synthesis import synthesize_meeting_prep
+from app.steering import get_current_steering
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-async def run_pipeline_for_new_meetings() -> int:
+async def run_pipeline_for_new_meetings(db: AsyncSession | None = None) -> int:
     """Orchestrate the end-to-end agent workflow for any NEW meetings.
 
     In the full implementation (per `Backend.md`), this will:
@@ -29,6 +32,19 @@ async def run_pipeline_for_new_meetings() -> int:
 
     For now, this is a stub so we can wire the trigger endpoint end-to-end.
     """
+    if db is None:
+        async with SessionLocal() as session:
+            return await _run_pipeline_for_new_meetings(session)
+
+    return await _run_pipeline_for_new_meetings(db)
+
+
+# ---------------------------------------------------------------------------
+# Private helpers
+# ---------------------------------------------------------------------------
+
+
+async def _run_pipeline_for_new_meetings(db: AsyncSession) -> int:
     logger.info("run_pipeline_for_new_meetings: starting (stub)")
 
     # Poll Google Calendar
@@ -51,8 +67,7 @@ async def run_pipeline_for_new_meetings() -> int:
             }
         )
 
-    # TODO: Load current steering profile from DB (versioned).
-    steering = _default_steering()
+    steering = await get_current_steering(db)
 
     processed_meetings = 0
     for m in meetings:
@@ -92,29 +107,6 @@ async def run_pipeline_for_new_meetings() -> int:
 
     logger.info("run_pipeline_for_new_meetings: done (processed=%s)", processed_meetings)
     return processed_meetings
-
-
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-
-def _default_steering() -> SteeringProfileRead:
-    """Temporary steering profile until persistence is implemented."""
-    return SteeringProfileRead(
-        id=1,
-        product_focus="(placeholder) Always-on meeting prep agent",
-        icp="(placeholder) B2B SaaS founders",
-        key_pains=["Generic outreach", "Low reply rates"],
-        disallowed_claims=["We guarantee outcomes"],
-        competitor_list=["CompetitorX", "CompetitorY"],
-        weight_news=0.34,
-        weight_role_pains=0.33,
-        weight_competitors=0.33,
-        specificity_rules=["Reference recent news", "Avoid vague claims"],
-        version=1,
-        updated_at=datetime.now(tz=timezone.utc),
-    )
 
 
 def _infer_company_from_attendees(attendees: list[dict]) -> str:
