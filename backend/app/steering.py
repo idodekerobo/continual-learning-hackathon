@@ -90,15 +90,34 @@ async def apply_feedback(
     weight_competitors = current.weight_competitors
     specificity_rules = list(current.specificity_rules or [])
 
+    keyword_deltas = {
+        "news": ("weight_news", 0.2),
+        "headline": ("weight_news", 0.1),
+        "competitor": ("weight_competitors", 0.2),
+        "competition": ("weight_competitors", 0.1),
+        "role": ("weight_role_pains", 0.2),
+        "pain": ("weight_role_pains", 0.2),
+        "generic": ("specificity", 0.2),
+        "specific": ("specificity", 0.2),
+    }
+
     if "generic" in text or "specific" in text:
         if "Be more specific" not in specificity_rules:
             specificity_rules.append("Be more specific")
-    if "news" in text:
-        weight_news += 0.1
-    if "role" in text or "pain" in text:
-        weight_role_pains += 0.1
-    if "competitor" in text:
-        weight_competitors += 0.1
+        if "Cite sources or concrete facts" not in specificity_rules:
+            specificity_rules.append("Cite sources or concrete facts")
+
+    for keyword, (bucket, delta) in keyword_deltas.items():
+        if keyword not in text:
+            continue
+        if bucket == "weight_news":
+            weight_news += delta
+        elif bucket == "weight_role_pains":
+            weight_role_pains += delta
+        elif bucket == "weight_competitors":
+            weight_competitors += delta
+        else:
+            continue
 
     weight_news, weight_role_pains, weight_competitors = _normalize(
         [weight_news, weight_role_pains, weight_competitors]
