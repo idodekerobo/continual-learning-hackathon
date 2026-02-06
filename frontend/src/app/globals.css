@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Dossier palette (light) */
+  --bg: #fbfaf6;
+  --paper: #ffffff;
+  --ink: #101317;
+  --muted: #5b6673;
+  --stroke: rgba(16, 19, 23, 0.14);
+  --wash: rgba(16, 19, 23, 0.04);
+
+  /* Accent */
+  --accent: #00d4ff;
+  --accent-ink: #00212a;
+
+  /* System */
+  --shadow: 0 20px 60px rgba(16, 19, 23, 0.12);
+  --radius: 18px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dossier palette (dark) */
+    --bg: #07090c;
+    --paper: #0b0f14;
+    --ink: #e8eef6;
+    --muted: #a4b2c4;
+    --stroke: rgba(232, 238, 246, 0.14);
+    --wash: rgba(232, 238, 246, 0.06);
+
+    --accent: #00d4ff;
+    --accent-ink: #001319;
+
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* Atmosphere: “paper + signal” texture without images */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 18% 8%, rgba(0, 212, 255, 0.10), transparent 60%),
+    radial-gradient(900px 520px at 82% 12%, rgba(16, 19, 23, 0.06), transparent 62%),
+    radial-gradient(820px 560px at 55% 92%, rgba(0, 212, 255, 0.06), transparent 62%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(16, 19, 23, 0.02) 0px,
+      rgba(16, 19, 23, 0.02) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before {
+    background:
+      radial-gradient(1100px 560px at 16% 10%, rgba(0, 212, 255, 0.14), transparent 60%),
+      radial-gradient(900px 520px at 82% 12%, rgba(232, 238, 246, 0.06), transparent 62%),
+      radial-gradient(820px 560px at 55% 92%, rgba(0, 212, 255, 0.08), transparent 62%),
+      repeating-linear-gradient(
+        0deg,
+        rgba(232, 238, 246, 0.04) 0px,
+        rgba(232, 238, 246, 0.04) 1px,
+        transparent 1px,
+        transparent 7px
+      );
+    opacity: 0.55;
+    mix-blend-mode: screen;
+  }
+}
+
+/* Better default selection */
+::selection {
+  background: rgba(0, 212, 255, 0.28);
 }
