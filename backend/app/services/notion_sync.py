@@ -27,6 +27,7 @@ async def upsert_notion_row(
 
     try:
         from composio import Composio  # type: ignore[import-not-found]
+        from composio.client.enums import Action  # type: ignore[import-not-found]
     except Exception as exc:
         logger.error("Composio SDK import failed: %s", exc)
         return None
@@ -39,22 +40,21 @@ async def upsert_notion_row(
     }
 
     composio = Composio(api_key=settings.COMPOSIO_API_KEY)
+    entity = composio.get_entity(settings.COMPOSIO_USER_ID)
 
     def _execute() -> dict[str, Any]:
         if existing_page_id:
-            return composio.tools.execute(
-                "NOTION_UPDATE_ROW_DATABASE",
-                user_id=settings.COMPOSIO_USER_ID,
-                arguments={
+            return entity.execute(
+                action=Action.NOTION_UPDATE_ROW_DATABASE,
+                params={
                     "database_id": settings.NOTION_DATABASE_ID,
                     "page_id": existing_page_id,
                     "properties": properties,
                 },
             )
-        return composio.tools.execute(
-            "NOTION_INSERT_ROW_DATABASE",
-            user_id=settings.COMPOSIO_USER_ID,
-            arguments={
+        return entity.execute(
+            action=Action.NOTION_INSERT_ROW_DATABASE,
+            params={
                 "database_id": settings.NOTION_DATABASE_ID,
                 "properties": properties,
             },

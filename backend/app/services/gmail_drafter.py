@@ -22,17 +22,18 @@ async def create_drafts(
 
     try:
         from composio import Composio  # type: ignore[import-not-found]
+        from composio.client.enums import Action  # type: ignore[import-not-found]
     except Exception as exc:
         logger.error("Composio SDK import failed: %s", exc)
         return []
 
     composio = Composio(api_key=settings.COMPOSIO_API_KEY)
+    entity = composio.get_entity(settings.COMPOSIO_USER_ID)
 
     def _execute(payload: dict[str, Any]) -> dict[str, Any]:
-        return composio.tools.execute(
-            "GMAIL_CREATE_EMAIL_DRAFT",
-            user_id=settings.COMPOSIO_USER_ID,
-            arguments=payload,
+        return entity.execute(
+            action=Action.GMAIL_CREATE_EMAIL_DRAFT,
+            params=payload,
         )
 
     async def _draft(subject: str, body: str) -> str | None:

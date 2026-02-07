@@ -39,6 +39,7 @@ async def fetch_upcoming_events(
 
     try:
         from composio import Composio  # type: ignore[import-not-found]
+        from composio.client.enums import Action  # type: ignore[import-not-found]
     except Exception as exc:
         logger.error("Composio SDK import failed: %s", exc)
         return []
@@ -55,13 +56,13 @@ async def fetch_upcoming_events(
     )
 
     composio = Composio(api_key=settings.COMPOSIO_API_KEY)
+    entity = composio.get_entity(settings.COMPOSIO_USER_ID)
 
     # Composio SDK is sync; run it off the event loop.
     def _execute() -> dict[str, Any]:
-        return composio.tools.execute(
-            "GOOGLECALENDAR_EVENTS_LIST",
-            user_id=settings.COMPOSIO_USER_ID,
-            arguments={
+        return entity.execute(
+            action=Action.GOOGLECALENDAR_EVENTS_LIST,
+            params={
                 "calendarId": calendar_id,
                 "timeMin": time_min,
                 "timeMax": time_max,
