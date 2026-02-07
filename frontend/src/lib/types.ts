@@ -1,43 +1,54 @@
-export type MeetingStatus = "New" | "Enriched" | "Drafted" | "Feedback Given";
+export type MeetingStatus =
+  | "New"
+  | "Enriching"
+  | "Enriched"
+  | "Drafted"
+  | "FeedbackGiven"
+  | "Error";
 
-export type EmailDraft = {
-  id: string;
-  subject: string;
-  body: string;
+export type MeetingListItem = {
+  id: number;
+  title: string;
+  datetime_utc: string | null;
+  company?: string | null;
+  role?: string | null;
+  status: MeetingStatus;
 };
 
-export type Meeting = {
-  id: string;
-  title: string;
-  startsAtIso: string;
-  contactName: string;
-  contactEmail: string;
-  company: string;
-  role: string;
-  status: MeetingStatus;
-  lastRunIso?: string;
-  topInsights: Array<{ text: string; why: string }>;
-  hooks: string[];
-  competitors: string[];
-  drafts: EmailDraft[];
-  feedback?: {
-    score: "up" | "down";
-    notes?: string;
-  };
+export type MeetingDetail = MeetingListItem & {
+  attendees: Array<{ email?: string | null; name?: string | null; responseStatus?: string | null }>;
+  insights: Array<{ text: string; why: string; priority: number }>;
+  hooks: Array<{ hook: string; source: string }>;
+  competitors: Array<{ name: string; positioning?: string }>;
+  draft_ids: string[];
+  notion_page_id?: string | null;
+  feedback_score?: number | null;
+  feedback_notes?: string | null;
+  steering_version?: number | null;
+  error_message?: string | null;
 };
 
 export type SteeringProfile = {
-  version: string;
-  productFocus: string;
-  disallowedGenericClaims: string[];
-  weights: {
-    news: number; // 0..1
-    rolePains: number; // 0..1
-    competitors: number; // 0..1
-  };
-  specificityRules: {
-    minConcreteFacts: number;
-    banVaguePhrases: boolean;
-  };
+  id: number;
+  product_focus: string;
+  icp: string;
+  key_pains: string[];
+  disallowed_claims: string[];
+  competitor_list: string[];
+  weight_news: number;
+  weight_role_pains: number;
+  weight_competitors: number;
+  specificity_rules: string[];
+  version: number;
+  updated_at: string;
+};
+
+export type SteeringProfileUpdate = Partial<
+  Omit<SteeringProfile, "id" | "version" | "updated_at">
+>;
+
+export type TriggerPollResponse = {
+  new_meetings: number;
+  processed_meetings: number;
 };
 

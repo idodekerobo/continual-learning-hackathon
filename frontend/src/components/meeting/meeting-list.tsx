@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 
-import type { Meeting } from "@/lib/types";
+import type { MeetingListItem } from "@/lib/types";
 
 import { StatusChip } from "@/components/meeting/status-chip";
 import { cn } from "@/lib/cn";
 
-function formatTime(iso: string) {
+function formatTime(iso: string | null) {
+  if (!iso) return "TBD";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     weekday: "short",
@@ -16,10 +17,12 @@ function formatTime(iso: string) {
   });
 }
 
-export function MeetingList({ items }: { items: Meeting[] }) {
+export function MeetingList({ items }: { items: MeetingListItem[] }) {
   return (
     <div className="grid gap-3">
       {items.map((m) => {
+        const company = m.company ?? "Unknown";
+        const role = m.role ?? "Unknown";
         return (
           <Link
             key={m.id}
@@ -39,29 +42,17 @@ export function MeetingList({ items }: { items: Meeting[] }) {
                   <StatusChip status={m.status} />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--muted)]">
-                  <span className="font-mono tracking-wide">{formatTime(m.startsAtIso)}</span>
-                  <span className="opacity-60">•</span>
-                  <span className="truncate">
-                    {m.contactName} <span className="opacity-60">({m.role})</span>
+                  <span className="font-mono tracking-wide">
+                    {formatTime(m.datetime_utc)}
                   </span>
                   <span className="opacity-60">•</span>
-                  <span className="truncate">{m.company}</span>
+                  <span className="truncate">{role}</span>
+                  <span className="opacity-60">•</span>
+                  <span className="truncate">{company}</span>
                 </div>
               </div>
               <div className="mt-1 hidden shrink-0 font-mono text-[11px] tracking-wide text-[var(--muted)] sm:block">
-                {m.lastRunIso ? (
-                  <>
-                    LAST RUN
-                    <div className="mt-1 text-[12px] text-[var(--ink)]/80">
-                      {new Date(m.lastRunIso).toLocaleTimeString(undefined, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  "READY"
-                )}
+                READY
               </div>
             </div>
           </Link>

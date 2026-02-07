@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     - `CORS_ORIGINS` accepts a comma-separated list (e.g. "http://localhost:3000,http://127.0.0.1:3000").
     """
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", ".env.local"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     # External integrations
     OPENAI_API_KEY: str | None = None

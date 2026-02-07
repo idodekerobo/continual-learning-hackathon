@@ -3,17 +3,39 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { sendFeedback } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
 export function FeedbackPanel({
+  meetingId,
   defaultScore,
   defaultNotes,
 }: {
+  meetingId: number;
   defaultScore?: "up" | "down";
   defaultNotes?: string;
 }) {
   const [score, setScore] = React.useState<"up" | "down" | null>(defaultScore ?? null);
   const [notes, setNotes] = React.useState(defaultNotes ?? "");
+  const [status, setStatus] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
+
+  async function handleSubmit() {
+    if (!score) {
+      setStatus("Pick a score first.");
+      return;
+    }
+    setPending(true);
+    setStatus(null);
+    try {
+      await sendFeedback(meetingId, score === "up" ? 1 : 0, notes);
+      setStatus("Feedback recorded.");
+    } catch (err) {
+      setStatus("Feedback failed. Check backend.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div>
@@ -36,10 +58,20 @@ export function FeedbackPanel({
         >
           👎 Too generic
         </Button>
-        <div className="ml-auto font-mono text-[11px] tracking-wide text-[var(--muted)]">
-          {score ? "RECORDED (demo)" : "PENDING"}
-        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={pending}
+          onClick={handleSubmit}
+          className="ml-auto"
+        >
+          {pending ? "Saving..." : "Save feedback"}
+        </Button>
       </div>
+      {status ? (
+        <div className="mt-2 text-[12px] text-[var(--muted)]">{status}</div>
+      ) : null}
 
       <div className="mt-4">
         <label className="block text-[12px] font-medium text-[var(--muted)]">
@@ -57,8 +89,7 @@ export function FeedbackPanel({
           )}
         />
         <div className="mt-2 text-[12px] text-[var(--muted)]">
-          In the full build, this updates the <span className="font-semibold">Steering Profile</span>{" "}
-          for future runs.
+          This updates the <span className="font-semibold">Steering Profile</span> for future runs.
         </div>
       </div>
     </div>

@@ -6,12 +6,16 @@ export function StatusChip({ status }: { status: MeetingStatus }) {
   switch (status) {
     case "New":
       return <Chip tone="new">New</Chip>;
+    case "Enriching":
+      return <Chip tone="new">Enriching</Chip>;
     case "Enriched":
       return <Chip tone="enriched">Enriched</Chip>;
     case "Drafted":
       return <Chip tone="drafted">Drafted</Chip>;
-    case "Feedback Given":
+    case "FeedbackGiven":
       return <Chip tone="feedback">Feedback Given</Chip>;
+    case "Error":
+      return <Chip tone="ink">Error</Chip>;
     default:
       return <Chip tone="ink">{status}</Chip>;
   }

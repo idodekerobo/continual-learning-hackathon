@@ -2,11 +2,12 @@ import Link from "next/link";
 
 import { MeetingList } from "@/components/meeting/meeting-list";
 import { Section } from "@/components/meeting/section";
+import { TriggerPollButton } from "@/components/meeting/meeting-actions";
 import { Button } from "@/components/ui/button";
-import { getMeetingsSorted } from "@/lib/mock";
+import { getMeetings } from "@/lib/api";
 
-export default function Home() {
-  const items = getMeetingsSorted();
+export default async function Home() {
+  const items = await getMeetings();
 
   return (
     <div className="space-y-6">
@@ -26,7 +27,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="primary">Simulate booking</Button>
+            <TriggerPollButton />
             <Link href="/steering">
               <Button variant="secondary">Steering</Button>
             </Link>
