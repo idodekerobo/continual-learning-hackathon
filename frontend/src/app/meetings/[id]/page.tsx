@@ -24,9 +24,10 @@ function formatWhen(iso: string | null) {
 export default async function MeetingDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const meetingId = Number(params.id);
+  const { id } = await params;
+  const meetingId = Number(id);
   if (Number.isNaN(meetingId)) notFound();
 
   const meeting = await getMeeting(meetingId);

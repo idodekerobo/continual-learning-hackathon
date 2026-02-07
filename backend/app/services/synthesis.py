@@ -141,10 +141,16 @@ async def synthesize_meeting_prep(
     Returns a structured `SynthesisResult`. This function is "soft-fail": it returns
     a placeholder result with `.error` set if OpenAI isn't configured or if the run fails.
     """
+    import os
+
     settings = get_settings()
     if not settings.OPENAI_API_KEY:
         logger.warning("OPENAI_API_KEY not configured")
         return _fallback_result("OPENAI_API_KEY not configured")
+
+    # The OpenAI Agents SDK reads OPENAI_API_KEY from os.environ;
+    # pydantic-settings loads .env but doesn't export to the process env.
+    os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
 
     instructions = _build_system_instructions(steering)
     payload = _build_input_payload(
