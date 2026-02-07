@@ -67,10 +67,10 @@ export default function SteeringPage() {
             <h1 className="mt-2 font-[var(--font-display)] text-4xl leading-[1.05] tracking-[-0.03em]">
               Feedback & Steering
             </h1>
-            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--muted)]">
+            {/* <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--muted)]">
               This is the “visible learning” moment for the demo: pivot the focus, rebalance
               weights, and future meeting outputs change immediately.
-            </p>
+            </p> */}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
